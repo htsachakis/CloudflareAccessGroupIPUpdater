@@ -1,6 +1,9 @@
 # Cloudflare Access Group IP Updater
 A Go CLI application that automatically updates your Cloudflare Access Group IP address when your public IP changes. This is useful for maintaining secure access to your resources when your IP address changes dynamically.
 
+# Why I Built This
+I developed this tool so I can access my hosted services from multiple locations even when my dynamic IP changes, without the need to login every time to the Cloudflare access policy to update manually the IP address. This saves time and ensures I never lose access to my services due to IP changes.
+
 ## Features
 
 - Retrieves your current public IP address using ipify.org
@@ -12,9 +15,33 @@ A Go CLI application that automatically updates your Cloudflare Access Group IP 
 - Test notification feature to verify your notification setup
 - Built with Go for efficient resource usage
 
+
+## Use Cases
+### Dynamic IP Management for Remote Workers
+Many home internet connections use dynamic IPs that change periodically. This tool ensures team members working remotely maintain almost uninterrupted access to protected Cloudflare resources without manual IP updates.
+### DevOps Infrastructure Protection
+Secure your development, staging, or production environments behind Cloudflare Access while allowing authorized developers to connect from locations with changing IP addresses.
+### Zero Trust Security Implementation
+Implement a key component of a Zero Trust security model by maintaining accurate IP allowlists that are automatically updated, combining the convenience of IP-based filtering with the security of regularly updated access controls.
+### Small Business Network Security
+Perfect for small businesses or startups using residential internet connections with dynamic IPs, ensuring continuous access to protected internal tools and resources.
+### Multi-Site Connectivity
+For businesses with multiple locations or branch offices using non-static IPs, maintain consistent access to internal resources across all sites without manual intervention.
+### Home Lab Security
+Secure self-hosted services, home labs, or personal infrastructure behind Cloudflare Access while accommodating the dynamic IP allocation typical of residential internet service providers.
+### API Protection
+Protect your APIs by ensuring only requests from authorized locations can access them, even when your IP address changes.
+### Automated Disaster Recovery
+Maintain access controls during failover scenarios where traffic might be routing through different paths with different source IPs.
+### VPN Exit Node Management
+If you're using a VPN with rotating exit nodes, this tool ensures your Cloudflare Access groups stay updated with your current exit node IP.
+### Notification System for IP Changes
+Receive timely alerts when your public IP changes, providing an additional security layer to monitor potential network changes or issues.
+These use cases highlight the flexibility and practical applications of your tool across different scenarios, showing its value for everyone from individual developers to organizations with complex security requirements.
+
 ## Requirements
 
-- Go 1.18+ (for development)
+- Go 1.24+ (for development)
 - Docker (optional, for containerized deployment)
 - Cloudflare account with [API access](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/)
 - - Required "Access: Organizations, Identity Providers, and Groups Read/Write" Check [here](https://developers.cloudflare.com/api/resources/zero_trust/subresources/access/subresources/groups/methods/list/)
