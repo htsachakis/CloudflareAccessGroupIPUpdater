@@ -60,7 +60,6 @@ The application is configured via environment variables:
 | `NOTIFICATION_URL`        | Shoutrrr URL for notifications (see below for examples)                                    | No       |
 | `NOTIFICATION_IDENTIFIER` | A message added before the Shoutrrr Message                                                | No       |
 | `TEST_NOTIFICATION`       | Set to "true" to send a test notification on startup                                       | No       |
-| `HEALTH_PORT`             | Port for the health check HTTP server (default: 8080)                                      | No       |
 
 ### Notification URL Format
 
@@ -179,11 +178,10 @@ When using Docker Compose, the `.env` file is automatically loaded and passed to
           #- NOTIFICATION_URL=
           #- TEST_NOTIFICATION=true
           #- NOTIFICATION_IDENTIFIER="Server Name"
-          - HEALTH_PORT=${HEALTH_PORT:-8080}
         ports:
-          - "${HEALTH_PORT:-8080}:${HEALTH_PORT:-8080}"
+          - 8080:8080 # Optional if wanted to expose the health check server
         healthcheck:
-          test: ["CMD", "wget", "--spider", "--quiet", "http://localhost:${HEALTH_PORT:-8080}/health"]
+          test: ["CMD", "wget", "--spider", "--quiet", "http://localhost:8080/health"]
           interval: 30s
           timeout: 10s
           retries: 3

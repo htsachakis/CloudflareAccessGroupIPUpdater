@@ -26,7 +26,6 @@ type Configuration struct {
 	NotificationURL        string
 	NotificationIdentifier string
 	TestNotification       bool
-	HealthPort             string
 }
 
 // CloudflareResponse represents the response from Cloudflare API
@@ -92,12 +91,6 @@ func loadConfig() Configuration {
 		testNotification = true
 	}
 
-	// Health check port (optional)
-	healthPort := os.Getenv("HEALTH_PORT")
-	if healthPort == "" {
-		healthPort = "8080" // Default port if not specified
-	}
-
 	return Configuration{
 		AccountID:              accountID,
 		RuleID:                 ruleID,
@@ -106,7 +99,6 @@ func loadConfig() Configuration {
 		NotificationURL:        notificationURL,
 		NotificationIdentifier: notificationIdentifier,
 		TestNotification:       testNotification,
-		HealthPort:             healthPort,
 	}
 }
 
@@ -310,13 +302,19 @@ func sendNotification(config Configuration, message string) error {
 }
 
 // startHealthCheckServer starts a simple HTTP server for container health checks
-func startHealthCheckServer(config Configuration) {
-	port := config.HealthPort
+func startHealthCheckServer(port string) {
+	// Check if the port is empty
+	if port == "" {
+		port = "8080"
+	}
 
 	// Define a simple handler for health checks
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		_, err := w.Write([]byte("OK"))
+		if err != nil {
+			return
+		}
 	})
 
 	// Define a handler for readiness checks that provides more details
@@ -335,7 +333,10 @@ func startHealthCheckServer(config Configuration) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write(jsonData)
+		_, err = w.Write(jsonData)
+		if err != nil {
+			return
+		}
 	})
 
 	// Start the HTTP server in a goroutine
@@ -460,7 +461,7 @@ func main() {
 	config := loadConfig()
 
 	// Start the health check server
-	startHealthCheckServer(config)
+	startHealthCheckServer("8080")
 
 	// Send test notification if requested
 	if config.TestNotification && config.NotificationURL != "" {
