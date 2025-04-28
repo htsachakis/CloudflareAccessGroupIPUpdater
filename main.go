@@ -26,6 +26,7 @@ type Configuration struct {
 	NotificationURL        string
 	NotificationIdentifier string
 	TestNotification       bool
+	HealthPort             string
 }
 
 // CloudflareResponse represents the response from Cloudflare API
@@ -91,6 +92,12 @@ func loadConfig() Configuration {
 		testNotification = true
 	}
 
+	// Health check port (optional)
+	healthPort := os.Getenv("HEALTH_PORT")
+	if healthPort == "" {
+		healthPort = "8080" // Default port if not specified
+	}
+
 	return Configuration{
 		AccountID:              accountID,
 		RuleID:                 ruleID,
@@ -99,6 +106,7 @@ func loadConfig() Configuration {
 		NotificationURL:        notificationURL,
 		NotificationIdentifier: notificationIdentifier,
 		TestNotification:       testNotification,
+		HealthPort:             healthPort,
 	}
 }
 
@@ -301,6 +309,48 @@ func sendNotification(config Configuration, message string) error {
 	return nil
 }
 
+// startHealthCheckServer starts a simple HTTP server for container health checks
+func startHealthCheckServer(config Configuration) {
+	port := config.HealthPort
+
+	// Define a simple handler for health checks
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	})
+
+	// Define a handler for readiness checks that provides more details
+	http.HandleFunc("/ready", func(w http.ResponseWriter, r *http.Request) {
+		info := map[string]interface{}{
+			"status":    "OK",
+			"timestamp": time.Now().Format(time.RFC3339),
+			"uptime":    time.Since(startTime).String(),
+		}
+
+		jsonData, err := json.Marshal(info)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(jsonData)
+	})
+
+	// Start the HTTP server in a goroutine
+	go func() {
+		addr := fmt.Sprintf(":%s", port)
+		log.Printf("Starting health check server on %s", addr)
+		if err := http.ListenAndServe(addr, nil); err != nil {
+			log.Printf("Health check server error: %v", err)
+		}
+	}()
+}
+
+// Global variable to track application start time
+var startTime time.Time
+
 func checkAndUpdateIP(config Configuration) {
 	log.Println("Checking if IP update is needed...")
 
@@ -394,7 +444,10 @@ func checkAndUpdateIP(config Configuration) {
 }
 
 func main() {
-	log.Println("Starting Cloudflare IP Updater")
+	// Initialize the start time for uptime tracking
+	startTime = time.Now()
+
+	log.Println("Cloudflare Access Group IP Updater")
 
 	// Load the.env file if it exists
 	if err := godotenv.Load(); err != nil {
@@ -405,6 +458,9 @@ func main() {
 
 	// Load configuration
 	config := loadConfig()
+
+	// Start the health check server
+	startHealthCheckServer(config)
 
 	// Send test notification if requested
 	if config.TestNotification && config.NotificationURL != "" {

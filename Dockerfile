@@ -24,6 +24,9 @@ WORKDIR /root/
 # Copy the binary from builder
 COPY --from=builder /app/cloudflare-access-group-ip-updater .
 
+# Expose health check port
+EXPOSE 8080
+
 # Run the application
 CMD ["./cloudflare-access-group-ip-updater"]
 

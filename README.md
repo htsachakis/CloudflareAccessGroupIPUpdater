@@ -2,17 +2,18 @@
 A Go CLI application that automatically updates your Cloudflare Access Group IP address when your public IP changes. This is useful for maintaining secure access to your resources when your IP address changes dynamically.
 
 # Why I Built This
-I developed this tool so I can access my hosted services from multiple locations even when my dynamic IP changes, without the need to login every time to the Cloudflare access policy to update manually the IP address. This saves time and ensures I never lose access to my services due to IP changes.
+I developed this tool, so I can access my hosted services from multiple locations even when my dynamic IP changes, without the need to log in every time to the Cloudflare access policy to manually update the IP address. This saves time and ensures I never lose access to my services due to IP changes.
 
 ## Features
 
-- Retrieves your current public IP address using ipify.org
+- Retrieves your current public IP address using multiple IP provider services for redundancy
 - Gets your Cloudflare Access Group configuration using the Cloudflare API
 - Compares your current IP with the one in your Cloudflare Access Group
 - Updates the Access Group if the IP has changed
 - Runs on a cron schedule you specify via environment variables
 - Sends notifications when IP changes or on errors via Shoutrrr (supports Discord, Slack, Telegram, email, and more)
 - Test notification feature to verify your notification setup
+- HTTP health check endpoint for container monitoring
 - Built with Go for efficient resource usage
 
 
@@ -22,7 +23,7 @@ Many home internet connections use dynamic IPs that change periodically. This to
 ### DevOps Infrastructure Protection
 Secure your development, staging, or production environments behind Cloudflare Access while allowing authorized developers to connect from locations with changing IP addresses.
 ### Zero Trust Security Implementation
-Implement a key component of a Zero Trust security model by maintaining accurate IP allowlists that are automatically updated, combining the convenience of IP-based filtering with the security of regularly updated access controls.
+Implement a key part of a Zero Trust security model by maintaining accurate IP allowlists that are automatically updated, combining the convenience of IP-based filtering with the security of regularly updated access controls.
 ### Small Business Network Security
 Perfect for small businesses or startups using residential internet connections with dynamic IPs, ensuring continuous access to protected internal tools and resources.
 ### Multi-Site Connectivity
@@ -50,14 +51,16 @@ These use cases highlight the flexibility and practical applications of your too
 
 The application is configured via environment variables:
 
-| Environment Variable | Description                                                                                | Required |
-|----------------------|--------------------------------------------------------------------------------------------|----------|
-| `ACCOUNTID`          | Your Cloudflare account ID                                                                 | Yes      |
-| `RULEID`             | Your Cloudflare Access Group rule ID                                                       | Yes      |
-| `CRON`               | Cron schedule for checking and updating the IP (e.g., `*/30 * * * *` for every 30 minutes) | Yes      |
-| `AUTH_TOKEN`         | Your Cloudflare API Bearer token with appropriate permissions                              | Yes      |
-| `NOTIFICATION_URL`   | Shoutrrr URL for notifications (see below for examples)                                    | No       |
-| `TEST_NOTIFICATION`  | Set to "true" to send a test notification on startup                                       | No       |
+| Environment Variable      | Description                                                                                | Required |
+|---------------------------|--------------------------------------------------------------------------------------------|----------|
+| `ACCOUNTID`               | Your Cloudflare account ID                                                                 | Yes      |
+| `RULEID`                  | Your Cloudflare Access Group rule ID                                                       | Yes      |
+| `CRON`                    | Cron schedule for checking and updating the IP (e.g., `*/30 * * * *` for every 30 minutes) | Yes      |
+| `AUTH_TOKEN`              | Your Cloudflare API Bearer token with appropriate permissions                              | Yes      |
+| `NOTIFICATION_URL`        | Shoutrrr URL for notifications (see below for examples)                                    | No       |
+| `NOTIFICATION_IDENTIFIER` | A message added before the Shoutrrr Message                                                | No       |
+| `TEST_NOTIFICATION`       | Set to "true" to send a test notification on startup                                       | No       |
+| `HEALTH_PORT`             | Port for the health check HTTP server (default: 8080)                                      | No       |
 
 ### Notification URL Format
 
@@ -97,6 +100,29 @@ For more details and examples, see the [Shoutrrr documentation](https://containr
    ```bash
    export $(cat .env | xargs) && ./cloudflare-access-group-ip-updater
    ```
+
+### Environment Variables
+
+The application requires certain environment variables to be set. There are two ways to provide these:
+
+1. **Using an `.env` file**
+   - The application will automatically load variables from a `.env` file in the same directory
+   - Copy the example `.env` file and modify it with your values:
+     ```bash
+     cp .env.example .env
+     # Edit .env with your values
+     ```
+
+2. **Setting environment variables directly**
+   - You can set the required environment variables directly in your shell:
+     ```bash
+     export ACCOUNTID=your_cloudflare_account_id
+     export RULEID=your_cloudflare_rule_id
+     export CRON="*/30 * * * *"
+     export AUTH_TOKEN=your_cloudflare_api_token
+     ```
+
+When using Docker Compose, the `.env` file is automatically loaded and passed to the container.
 
 ### Using Docker
 
@@ -153,6 +179,15 @@ For more details and examples, see the [Shoutrrr documentation](https://containr
           #- NOTIFICATION_URL=
           #- TEST_NOTIFICATION=true
           #- NOTIFICATION_IDENTIFIER="Server Name"
+          - HEALTH_PORT=${HEALTH_PORT:-8080}
+        ports:
+          - "${HEALTH_PORT:-8080}:${HEALTH_PORT:-8080}"
+        healthcheck:
+          test: ["CMD", "wget", "--spider", "--quiet", "http://localhost:${HEALTH_PORT:-8080}/health"]
+          interval: 30s
+          timeout: 10s
+          retries: 3
+          start_period: 10s
         volumes:
           - /etc/timezone:/etc/timezone:ro
           - /etc/localtime:/etc/localtime:ro
