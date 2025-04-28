@@ -10,7 +10,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: htsachakis/cloudflare-access-group-ip-updater
 
 jobs:
   build-and-push:
