@@ -19,16 +19,17 @@ FROM alpine:latest
 
 RUN apk --no-cache add ca-certificates
 
-WORKDIR /root/
+# Copy the binary from builder to a folder every user can read
+COPY --from=builder /app/cloudflare-access-group-ip-updater /usr/local/bin/cloudflare-access-group-ip-updater
 
-# Copy the binary from builder
-COPY --from=builder /app/cloudflare-access-group-ip-updater .
+# Run as an unprivileged user (Kubernetes runAsNonRoot needs a numeric user)
+USER 65532:65532
 
 # Expose health check port
 EXPOSE 8080
 
 # Run the application
-CMD ["./cloudflare-access-group-ip-updater"]
+CMD ["cloudflare-access-group-ip-updater"]
 
 LABEL org.opencontainers.image.source=https://github.com/htsachakis/cloudflare-access-group-ip-updater
 LABEL org.opencontainers.image.description="Cloudflare Access Group IP Updater"
